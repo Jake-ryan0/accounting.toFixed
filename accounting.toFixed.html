@@ -1,0 +1,124 @@
+<script src="simpleTest.js"></script>
+<script>
+// Notes:
+//  Native:
+//    1.005.toFixed() ==> "1"
+//    1.005.toFixed(1) ==> "1.0"
+//    1.005.toFixed(2) ==> "1.00"
+//    1.005.toFixed(3) ==> "1.005"
+//  Accounting:
+//    accounting.toFixed(1.005) ==> "1"
+//    accounting.toFixed(1.005, 1) ==> "1.0"
+//    accounting.toFixed(1.005, 2) ==> "1.01"
+//    accounting.toFixed(1.005, 3) ==> "1.005"
+//
+function toFixed(value, precision) {
+  var precision = precision || 0;
+  var stringValue = value.toString();
+  var splitAtDecimal = stringValue.split(".");
+  var leftOfDecimal = splitAtDecimal[0];
+  var rightOfDecimal = splitAtDecimal[1];
+
+  checkRightOfDecimalForRounding();
+
+  if (precision === 0) {
+    return leftOfDecimal;
+  } else {
+    if (precision > rightOfDecimal.length) {
+      return lengthenBasedOffPrecision();
+    } else {
+      return shortenBasedOffPrecision();
+    }
+  }
+
+
+  function checkRightOfDecimalForRounding() {
+    var roundsUpOrDown = rightOfDecimal.charAt(precision);
+    if (roundsUpOrDown >= 5) {
+      if (rightOfDecimal.charAt(precision -1)) {
+        splitIncrementJoin();
+        // rightOfDecimal.charAt(precision -1) ++;
+      } else {
+        leftOfDecimal ++;
+      }
+    }
+  }
+
+  function splitIncrementJoin() {
+    var arrayOfDecimals = rightOfDecimal.split("");
+    arrayOfDecimals[precision -1]++;
+    checkForTens(arrayOfDecimals);
+    splitAtDecimal[1] = arrayOfDecimals.join("");
+  }
+
+  function checkForTens(arrayOfDecimals) {
+    var indexOfTen = arrayOfDecimals.findIndex(function(element) {
+      return element == 10;
+    });
+    if (indexOfTen === -1) {
+      return;
+    }
+    arrayOfDecimals[indexOfTen] = 0;
+    if (arrayOfDecimals[indexOfTen -1]) {
+      splitIncrementJoin();
+    } else {
+      leftOfDecimal ++;
+      splitAtDecimal[0] = leftOfDecimal;
+    }
+  }
+
+  function shortenBasedOffPrecision() {
+    var numberToShorten = splitAtDecimal[1].split("");
+    numberToShorten.length = precision;
+    var joined = numberToShorten.join("");
+    splitAtDecimal[1] = joined;
+    var joinedAfterShortening = splitAtDecimal.join(".");
+    return joinedAfterShortening;
+  }
+
+  function lengthenBasedOffPrecision() {
+    var numberToLengthen = rightOfDecimal.split("");
+    var numberOfZeroes = precision - numberToLengthen.length;
+    for(var i = 0; i < numberOfZeroes; i++) {
+      numberToLengthen.push("0");
+    }
+    splitAtDecimal[1] = numberToLengthen.join("");
+    return splitAtDecimal.join(".");
+  }
+
+}
+  tests({
+    "it should return a whole number if precision is 0, and there is no need to round": function() {
+      var testNumber = "1.005";
+      var returned = toFixed(testNumber);
+      eq(returned, "1");
+    },
+    "it should return a whole number if precision is 0, and it should round if rightOfDecimal is 5 or greater": function() {
+      var testNumber = "1.5";
+      var returned = toFixed(testNumber);
+      eq(returned, "2");
+    },
+    "it should round based off of precision": function() {
+      var testNumber = "1.05";
+      var returned = toFixed(testNumber, 1);
+      eq(returned, "1.1");
+    },
+    "rounding based off precision where precision === 2": function() {
+      var testNumber = "1.005";
+      var returned = toFixed(testNumber, 2);
+      eq(returned, "1.01");
+    },
+    'accounting.toFixed(1.99, 1) => "2.0"': function() {
+      var returned = toFixed(1.99, 1);
+      eq(returned, "2.0");
+    },
+    'if precision > current decimal spots, fill in with 0 // toFixed(1.99, 3) => "1.990"': function() {
+      var returned = toFixed(1.99, 3);
+      eq(returned, "1.990");
+    },
+    "test for long precision": function() {
+      var returned = toFixed(1.99, 5);
+      eq(returned, "1.99000")
+    }
+  });
+</script>
